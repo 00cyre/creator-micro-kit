@@ -29,6 +29,8 @@ npm install creator-micro-kit
 
 macOS only, and Xcode command line tools are needed at install time to compile the native bridge (`xcode-select --install`).
 
+The bridge is built by a `postinstall` script. If you install with `--ignore-scripts`, run `npm run build --prefix node_modules/creator-micro-kit` once.
+
 ## Why there is a native bridge
 
 Node's hidapi bindings open macOS HID devices **exclusively** by default. The Creator Micro enumerates as a keyboard, so an exclusive open is refused with `kIOReturnNotPrivileged` unless the calling application holds Input Monitoring — which a terminal or a plain Node script generally does not.

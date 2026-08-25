@@ -5,16 +5,39 @@
   "type": "module",
   "license": "MIT",
   "main": "src/index.js",
-  "exports": { ".": "./src/index.js" },
-  "bin": { "creator-micro-kit": "bin/cli.js" },
-  "files": ["src", "bin", "native", "scripts", "README.md", "LICENSE"],
-  "engines": { "node": ">=20" },
-  "os": ["darwin"],
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "bin": {
+    "creator-micro-kit": "bin/cli.js"
+  },
+  "files": [
+    "src",
+    "bin",
+    "native",
+    "scripts",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "os": [
+    "darwin"
+  ],
   "scripts": {
     "build": "node scripts/build-native.js",
-    "prepare": "node scripts/build-native.js",
+    "postinstall": "node scripts/build-native.js",
     "check": "node --check src/index.js && node --check src/device.js && node --check src/protocol.js",
     "test": "node --test"
   },
-  "keywords": ["work-louder", "creator-micro", "macropad", "hid", "rgb", "led", "macos"]
+  "keywords": [
+    "work-louder",
+    "creator-micro",
+    "macropad",
+    "hid",
+    "rgb",
+    "led",
+    "macos"
+  ]
 }
