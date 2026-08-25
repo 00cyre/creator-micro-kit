@@ -49,6 +49,8 @@ Per-key accent colours. Each entry needs an `id` — the key's index in the `KV_
 
 `syncAmbient` makes the ambient ring follow that key's colour; `syncKeys` does the same for the key backlight.
 
+> **Always send `brightness` and `effect`, not just `color`.** Omitted fields keep their current value on the device — and after a power cycle that value is zero, so a colour-only update paints invisibly. `{ id, color, brightness: 1, effect: 1 }` is the minimum that is guaranteed to show.
+
 > **This only takes effect on a layer whose keymap contains `KV_OAI_*` keycodes.** See [Per-key colours](#per-key-colours).
 
 ### `device.setZones({ ambient, keys })`

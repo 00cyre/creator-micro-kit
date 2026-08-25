@@ -35,6 +35,9 @@ export class CreatorMicro extends EventEmitter {
     super();
     this.#bridge = bridge;
     this.info = info;
+    // A transport error with no listener must not crash the host process
+    // (Node throws on unhandled 'error' events). Callers can still subscribe.
+    this.on("error", () => {});
   }
 
   static async open({ productId, timeout = 5000 } = {}) {
