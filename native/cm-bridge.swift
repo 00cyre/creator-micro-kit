@@ -61,6 +61,16 @@ final class Bridge {
             return false
         }
         device = found
+        // Exit when the device goes away so the host process sees a clean
+        // close and can re-spawn the bridge once the device returns. Without
+        // this, an unplug leaves a silently dead handle.
+        IOHIDManagerRegisterDeviceRemovalCallback(mgr, { context, _, _, removed in
+            let bridge = Unmanaged<Bridge>.fromOpaque(context!).takeUnretainedValue()
+            if bridge.device == nil || bridge.device === removed {
+                emit(["type": "error", "message": "device removed"])
+                exit(3)
+            }
+        }, Unmanaged.passUnretained(self).toOpaque())
         IOHIDDeviceScheduleWithRunLoop(found, CFRunLoopGetCurrent(), CFRunLoopMode.defaultMode.rawValue)
         IOHIDDeviceRegisterInputReportCallback(found, reportBuffer, 64, { context, _, _, _, _, report, length in
             Unmanaged<Bridge>.fromOpaque(context!).takeUnretainedValue().receive(report, length)
