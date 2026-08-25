@@ -161,6 +161,50 @@ export class CreatorMicro extends EventEmitter {
     return this.call(Methods.lightingPreview, payload);
   }
 
+  /** Lists files on the device filesystem, with sizes and SHA-1 checksums. */
+  listFiles() {
+    return this.call("fs.list", { checksum: true });
+  }
+
+  /** Reads a whole file from the device filesystem as a Buffer. */
+  async readFile(name, { chunkSize = 1024 } = {}) {
+    const parts = [];
+    let offset = 0;
+    let total = Infinity;
+    while (offset < total) {
+      const chunk = await this.call("fs.readbin", { file: name, offset, len: chunkSize });
+      total = chunk.total_size;
+      const data = Buffer.from(chunk.data, "base64");
+      if (data.length === 0) break;
+      parts.push(data);
+      offset += data.length;
+    }
+    return Buffer.concat(parts);
+  }
+
+  /**
+   * Replaces a file on the device filesystem: delete, then append base64
+   * chunks of up to 3072 raw bytes (4096 base64 characters, the firmware's
+   * per-request limit) with `completed` set on the last one.
+   *
+   * The device buffers requests as one byte stream, so nothing else may be
+   * writing to it while this runs — including the Input app.
+   */
+  async writeFile(name, data, { chunkSize = 3072 } = {}) {
+    const buffer = Buffer.isBuffer(data) ? data : Buffer.from(data);
+    await this.call("fs.delete", { file: name }).catch(() => {});
+    for (let offset = 0; offset < buffer.length; offset += chunkSize) {
+      const slice = buffer.subarray(offset, offset + chunkSize);
+      await this.call("fs.writebin", {
+        file: name,
+        data: slice.toString("base64"),
+        append: true,
+        completed: offset + chunkSize >= buffer.length,
+        offset,
+      }, { timeout: 15000 });
+    }
+  }
+
   async close() {
     if (this.#closed) return;
     this.#closed = true;

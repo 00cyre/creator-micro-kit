@@ -65,6 +65,12 @@ Nothing is written to flash. The firmware re-applies the active layer's stored l
 
 Status reports `{ version, profile_index, layer_index, battery, is_charging }`.
 
+### `device.listFiles()` / `device.readFile(name)` / `device.writeFile(name, data)`
+
+The keypad's filesystem — `keymap.json` and `smart_actions.json` live there, and they are what the firmware actually runs. `listFiles` reports names, sizes and SHA-1 checksums; `writeFile` replaces a file using the delete-then-append-chunks sequence the official client uses.
+
+Writing `keymap.json` is how you change behaviour the Input app refuses to manage — for example, giving a layer `KV_OAI_AG*` keycodes so the firmware will colour its keys. The firmware may only pick the new file up after a replug. **Quit the Input app before writing:** the device buffers requests as a single byte stream, and two writers corrupt each other.
+
 ### `device.call(method, params)`
 
 Escape hatch for methods this library does not wrap.
