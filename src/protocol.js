@@ -15,13 +15,26 @@ export const PRODUCT_IDS = {
   codexMicro: 0x8360,
 };
 
-/** Generic firmware methods. */
+/**
+ * Generic firmware methods. Verified present on firmware 0.6.2 by probing: the
+ * device answers anything it does not implement with `Method not found`, so
+ * this list is the whole non-vendor surface, not a guess.
+ */
 export const Methods = {
   firmwareVersion: "sys.version",
   deviceStatus: "device.status",
   lightingPreview: "lights.preview",
-  homeAccentColor: "ui.home_accent_color",
   focusedApp: "host.focused_app",
+};
+
+/** Device filesystem methods. `keymap.json` and `smart_actions.json` live there. */
+export const FileMethods = {
+  list: "fs.list",
+  readText: "fs.read",
+  readBinary: "fs.readbin",
+  writeText: "fs.write",
+  writeBinary: "fs.writebin",
+  delete: "fs.delete",
 };
 
 // Vendor methods added for the ChatGPT integration. Despite the name they are
