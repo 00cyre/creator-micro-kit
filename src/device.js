@@ -203,11 +203,12 @@ export class CreatorMicro extends EventEmitter {
     this.#reconnecting = true;
     const delay = this.#options.reconnectDelay ?? 1000;
     while (!this.#closing) {
-      // Waiting is interruptible: close() wakes it so a long reconnectDelay
-      // neither holds the process open nor delays the shutdown.
+      // The timer stays referenced on purpose: a host waiting for the keypad
+      // to come back should not exit because nothing else is pending. close()
+      // cancels it, so shutting down is still immediate.
       await new Promise((resolve) => {
-        this.#wakeReconnect = resolve;
-        setTimeout(resolve, delay).unref?.();
+        const timer = setTimeout(resolve, delay);
+        this.#wakeReconnect = () => { clearTimeout(timer); resolve(); };
       });
       this.#wakeReconnect = undefined;
       if (this.#closing) break;

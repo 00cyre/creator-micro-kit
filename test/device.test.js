@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { once } from "node:events";
+import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -160,4 +161,28 @@ test("listDevices returns what the bridge enumerated", async () => {
     // The fake ignores --list and just says ready, so nothing is enumerated.
     assert.deepEqual(await CreatorMicro.listDevices(), []);
   });
+});
+
+test("a reconnecting host stays alive until the device returns", async () => {
+  // Nothing else keeps this process busy while the device is away, so if the
+  // retry timer were unreferenced Node would exit before the reconnect landed.
+  const marker = path.join(os.tmpdir(), `cmk-alive-${process.pid}-${Date.now()}`);
+  const script = `
+    process.env.CMK_BRIDGE_PATH = ${JSON.stringify(fakeBridge)};
+    process.env.CMK_FAKE = "die-once";
+    process.env.CMK_FAKE_MARKER = ${JSON.stringify(marker)};
+    const { CreatorMicro } = await import(${JSON.stringify(new URL("../src/device.js", import.meta.url).href)});
+    const device = await CreatorMicro.open({ reconnect: true, reconnectDelay: 300 });
+    device.on("reconnect", async () => { console.log("reconnected"); await device.close(); });
+  `;
+  try {
+    const child = spawn(process.execPath, ["--input-type=module", "-e", script], { stdio: ["ignore", "pipe", "pipe"] });
+    let out = "";
+    child.stdout.on("data", (chunk) => { out += chunk; });
+    const [code] = await once(child, "exit");
+    assert.equal(code, 0);
+    assert.match(out, /reconnected/);
+  } finally {
+    fs.rmSync(marker, { force: true });
+  }
 });
