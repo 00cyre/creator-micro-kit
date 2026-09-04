@@ -166,7 +166,7 @@ Replies are broadcast to every open reader, so a reply carrying an id you are wa
 
 ### Methods
 
-This is the whole surface. The firmware answers anything else with `{"code": 404, "message": "Method not found"}`, so the list was established by probing rather than inferred.
+Taken from the method table in firmware `0.6.2` itself, then confirmed by calling each one. An earlier version of this file claimed a shorter list established by probing alone — probing only finds names you think to guess, and it missed a third of these.
 
 | Method | Params |
 | --- | --- |
@@ -178,8 +178,13 @@ This is the whole surface. The firmware answers anything else with `{"code": 404
 | `fs.read` / `fs.readbin` | `{file, offset, len}` → `{data, total_size}` |
 | `fs.write` / `fs.writebin` | `{file, data, append, completed, offset}` |
 | `fs.delete` | `{file}` |
+| `fs.chksm` | `{file}` → `{size, checksum}`, one file's SHA-1 |
 | `v.oai.thstatus` | array of `{id, c, b, e, s, sk, sa}` |
 | `v.oai.rgbcfg` | `{ambient, keys}`, each `{e, b, s, m, c}` |
+| `sentry.get` | none → live task list, heap and CPU usage |
+| `sentry.coredump` | `{offset, length}` → a coredump ELF, same chunking as `fs.readbin` |
+
+Present in the firmware's table but deliberately not called here: `fs.format`, `sys.selftest`, `sys.charger_diagnostic`, `sys.charger_diagnostic_summary`, `sentry.crash`, `sentry.coredump_erase`, and `sys.bootloader` — which reboots into the ROM download mode and reports `{"status":"ok","rescue":"rear_button_via_ulp"}`.
 
 `lights.preview` takes effect **names**; the vendor methods take effect **indexes**. Colours are packed 24-bit integers. `brightness` and `speed` are 0–1.
 
@@ -187,7 +192,13 @@ The vendor methods return `{"ok": 1}` for any input, valid or not — they canno
 
 Notably absent: there is no method for changing the active profile or layer, and none for changing *how* lighting is applied. Whether a layer accepts per-key colour is decided by the firmware from the keymap; a host cannot override it.
 
-The surface is firmware-dependent. These names appear in the official client but answer 404 on `0.6.2`, so they belong to newer firmware or to the Codex Micro (`0x8360`): `appmgr.list_active`, `appmgr.list_installed`, `ui.active_screen`, `ui.home_accent_color`, `fs.txbegin`, `fs.txcommit`, `fs.rmdir`, `mp.write_info`, `mp.write_artwork`, `sys.selftest`, `sys.bootloader`. Probe before relying on any of them — `sys.bootloader` in particular is a DFU entry point and is untested here for obvious reasons.
+The surface is firmware-dependent. These names appear in the official client but answer 404 on `0.6.2`, so they belong to newer firmware or to the Codex Micro (`0x8360`): `appmgr.list_active`, `appmgr.list_installed`, `ui.active_screen`, `ui.home_accent_color`, `fs.txbegin`, `fs.txcommit`, `fs.rmdir`, `mp.write_info`, `mp.write_artwork`.
+
+### How the firmware is built
+
+`0.6.2` is `cm-v2-fw`, ESP-IDF 5.3.2, built 14 Aug 2026, on an ESP32-S3 with 16MB of flash laid out as a single 8MB `factory` app at `0x10000` — no OTA slot — plus `nvs`, a 2MB FAT `fs` holding `keymap.json`, and a coredump partition. Secure boot and flash encryption are both disabled.
+
+Lighting lives in `wl_lights_controller`, which subscribes to keymapper events; the vendor bridge is `wl_oai_bridge`. The firmware embeds two default keymaps, a plain one and an all-`KV_OAI_*` one for the Codex variant. Neither carries any per-layer flag for lighting ownership, which is the evidence that the per-key rule really is keycode-derived and not something a host can set.
 
 ### Events
 
