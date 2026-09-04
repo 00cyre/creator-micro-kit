@@ -123,7 +123,9 @@ npx creator-micro-kit push keymap.json ./keymap.json
 
 ## Per-key colours
 
-The firmware paints individual keys **only on layers whose keymap contains `KV_OAI_*` keycodes.** On any other layer it applies that layer's own stored zone lighting and ignores per-key colours entirely.
+The firmware paints individual keys **only on layers that carry `KV_OAI_*` keycodes.** On any other layer it applies that layer's own stored zone lighting and ignores per-key colours entirely.
+
+A layer qualifies on **any** of its inputs, not just its keys: a `KV_OAI_*` keycode on a base key, on an encoder direction, or on a joystick sector is enough. The official client tests all three.
 
 The Input app reflects this: it hides its lighting controls for those layers, because the device is driving their LEDs rather than the stored configuration.
 
@@ -183,7 +185,9 @@ This is the whole surface. The firmware answers anything else with `{"code": 404
 
 The vendor methods return `{"ok": 1}` for any input, valid or not — they cannot be probed by response.
 
-Notably absent: there is no method for changing the active profile or layer. Layer switching is a physical or Input-app affair.
+Notably absent: there is no method for changing the active profile or layer, and none for changing *how* lighting is applied. Whether a layer accepts per-key colour is decided by the firmware from the keymap; a host cannot override it.
+
+The surface is firmware-dependent. These names appear in the official client but answer 404 on `0.6.2`, so they belong to newer firmware or to the Codex Micro (`0x8360`): `appmgr.list_active`, `appmgr.list_installed`, `ui.active_screen`, `ui.home_accent_color`, `fs.txbegin`, `fs.txcommit`, `fs.rmdir`, `mp.write_info`, `mp.write_artwork`, `sys.selftest`, `sys.bootloader`. Probe before relying on any of them — `sys.bootloader` in particular is a DFU entry point and is untested here for obvious reasons.
 
 ### Events
 

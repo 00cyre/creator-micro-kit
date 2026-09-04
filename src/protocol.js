@@ -76,9 +76,13 @@ export const EffectName = {
 };
 
 /**
- * Per-key colours only appear on layers whose keymap contains KV_OAI_* keycodes.
- * On any other layer the firmware applies that layer's own stored zone lighting
- * and ignores thread lighting entirely.
+ * Per-key colours only appear on layers carrying KV_OAI_* keycodes. On any
+ * other layer the firmware applies that layer's own stored zone lighting and
+ * ignores thread lighting entirely.
+ *
+ * A layer qualifies on any of its inputs: a base key, an encoder direction or
+ * a joystick sector. No RPC method changes this — it is decided by the
+ * firmware from the keymap.
  */
 export const AGENT_KEYCODES = Object.freeze(
   Array.from({ length: 20 }, (_, index) => `KV_OAI_AG${String(index).padStart(2, "0")}`),
