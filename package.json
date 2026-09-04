@@ -29,7 +29,7 @@
     "build": "node scripts/build-native.js",
     "postinstall": "node scripts/build-native.js",
     "check": "node --check src/index.js && node --check src/device.js && node --check src/protocol.js",
-    "test": "node --test"
+    "test": "node --test test/*.test.js"
   },
   "keywords": [
     "work-louder",
