@@ -15,13 +15,26 @@ export const PRODUCT_IDS = {
   codexMicro: 0x8360,
 };
 
-/** Generic firmware methods. */
+/**
+ * Generic firmware methods. Verified present on firmware 0.6.2 by probing: the
+ * device answers anything it does not implement with `Method not found`, so
+ * this list is the whole non-vendor surface, not a guess.
+ */
 export const Methods = {
   firmwareVersion: "sys.version",
   deviceStatus: "device.status",
   lightingPreview: "lights.preview",
-  homeAccentColor: "ui.home_accent_color",
   focusedApp: "host.focused_app",
+};
+
+/** Device filesystem methods. `keymap.json` and `smart_actions.json` live there. */
+export const FileMethods = {
+  list: "fs.list",
+  readText: "fs.read",
+  readBinary: "fs.readbin",
+  writeText: "fs.write",
+  writeBinary: "fs.writebin",
+  delete: "fs.delete",
 };
 
 // Vendor methods added for the ChatGPT integration. Despite the name they are
@@ -63,9 +76,13 @@ export const EffectName = {
 };
 
 /**
- * Per-key colours only appear on layers whose keymap contains KV_OAI_* keycodes.
- * On any other layer the firmware applies that layer's own stored zone lighting
- * and ignores thread lighting entirely.
+ * Per-key colours only appear on layers carrying KV_OAI_* keycodes. On any
+ * other layer the firmware applies that layer's own stored zone lighting and
+ * ignores thread lighting entirely.
+ *
+ * A layer qualifies on any of its inputs: a base key, an encoder direction or
+ * a joystick sector. No RPC method changes this — it is decided by the
+ * firmware from the keymap.
  */
 export const AGENT_KEYCODES = Object.freeze(
   Array.from({ length: 20 }, (_, index) => `KV_OAI_AG${String(index).padStart(2, "0")}`),
