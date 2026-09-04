@@ -125,7 +125,16 @@ npx creator-micro-kit push keymap.json ./keymap.json
 
 The firmware paints individual keys **only on layers that carry `KV_OAI_*` keycodes.** On any other layer it applies that layer's own stored zone lighting and ignores per-key colours entirely.
 
-A layer qualifies on **any** of its inputs, not just its keys: a `KV_OAI_*` keycode on a base key, on an encoder direction, or on a joystick sector is enough. The official client tests all three.
+More precisely, the firmware paints thread `id` N onto **the key carrying `KV_OAI_AG{N}`** — nothing else. This was measured on a device, not inferred:
+
+| Layer under test | Result |
+| --- | --- |
+| `KV_OAI_AG00`–`AG05` on keys 1-6, rest `KC_NONE` | keys 1-6 take the host's colours |
+| a single `KV_OAI_ACT06` on one key, rest `KC_NONE` | **nothing paints** |
+
+So it is not a per-layer switch with positional painting: one `KV_OAI_*` keycode somewhere on a layer does **not** hand that layer's LEDs to the host. Each key you want coloured must itself be `KV_OAI_AG{N}`.
+
+That is worth stating plainly because it fixes the cost: a key is either a macro or individually addressable, never both. The official client's own predicate does test base keys, encoders and joystick sectors for the `KV_OAI_` prefix, but that governs whether *it* hides its lighting UI — it is not what the firmware uses to decide what to paint.
 
 The Input app reflects this: it hides its lighting controls for those layers, because the device is driving their LEDs rather than the stored configuration.
 
