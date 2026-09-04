@@ -136,6 +136,25 @@ test("reconnect re-opens after the device drops", async () => {
   }
 });
 
+test("close returns while the device is still away", async () => {
+  // The reconnect loop is between attempts here, so there is no live child to
+  // wait on. close() must still settle, and must stop the retrying.
+  const marker = path.join(os.tmpdir(), `cmk-closegap-${process.pid}-${Date.now()}`);
+  process.env.CMK_FAKE_MARKER = marker;
+  try {
+    await withFake("die-once", async (CreatorMicro) => {
+      const device = await CreatorMicro.open({ reconnect: true, reconnectDelay: 10_000 });
+      await once(device, "close");
+      assert.equal(device.connected, false);
+      await device.close();
+      assert.equal(device.closed, true);
+    });
+  } finally {
+    fs.rmSync(marker, { force: true });
+    delete process.env.CMK_FAKE_MARKER;
+  }
+});
+
 test("listDevices returns what the bridge enumerated", async () => {
   await withFake("ready", async (CreatorMicro) => {
     // The fake ignores --list and just says ready, so nothing is enumerated.

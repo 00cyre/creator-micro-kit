@@ -66,6 +66,7 @@ function spawnBridge({ productId, serial, timeout = 5000 } = {}) {
     const fail = (error) => {
       clearTimeout(timer);
       cleanup();
+      lines.close();
       bridge.kill();
       reject(error);
     };
@@ -117,6 +118,7 @@ export class CreatorMicro extends EventEmitter {
   #closing = false;
   #closed = false;
   #reconnecting = false;
+  #wakeReconnect;
 
   constructor(bridge, lines, info, options = {}) {
     super();
@@ -201,7 +203,13 @@ export class CreatorMicro extends EventEmitter {
     this.#reconnecting = true;
     const delay = this.#options.reconnectDelay ?? 1000;
     while (!this.#closing) {
-      await new Promise((resolve) => setTimeout(resolve, delay));
+      // Waiting is interruptible: close() wakes it so a long reconnectDelay
+      // neither holds the process open nor delays the shutdown.
+      await new Promise((resolve) => {
+        this.#wakeReconnect = resolve;
+        setTimeout(resolve, delay).unref?.();
+      });
+      this.#wakeReconnect = undefined;
       if (this.#closing) break;
       try {
         const { bridge, lines, info } = await spawnBridge(this.#options);
@@ -390,14 +398,23 @@ export class CreatorMicro extends EventEmitter {
     this.#closing = true;
     this.#closed = true;
     this.#rejectPending(new Error("Device is closed"));
-    // Ask the bridge to exit so it can drain queued writes; kill only if it
-    // does not take the hint.
-    const exited = new Promise((resolve) => this.#bridge.once("exit", resolve));
-    if (this.#bridge.stdin.writable) this.#bridge.stdin.write("quit\n");
-    this.#bridge.stdin.end();
-    const timer = setTimeout(() => this.#bridge.kill(), 1000);
-    await exited;
-    clearTimeout(timer);
+    this.#wakeReconnect?.();
+    const bridge = this.#bridge;
+    // Between a drop and a reconnect the child is already gone, and waiting on
+    // an `exit` that has fired would never return.
+    const running = bridge && bridge.exitCode === null && bridge.signalCode === null;
+    if (running) {
+      // Ask the bridge to exit so it can drain queued writes; kill only if it
+      // does not take the hint.
+      const exited = new Promise((resolve) => bridge.once("exit", resolve));
+      if (bridge.stdin.writable) bridge.stdin.write("quit\n");
+      bridge.stdin.end();
+      const timer = setTimeout(() => bridge.kill(), 1000);
+      await exited;
+      clearTimeout(timer);
+    } else {
+      this.emit("close");
+    }
     this.#lines?.close();
   }
 }
